@@ -161,3 +161,13 @@ npm run build
 ```
 
 If these commands pass, then commit/push your changes. The code has **not** been verified with a full dependency-backed build in this delivery environment; Cloudflare is the final build check.
+
+## Campaign-room creation troubleshooting (October 2026)
+
+The campaign lobby now displays Supabase error messages, including PostgREST error codes, rather than silently failing. The Create Room button shows a pending state and checks the current authenticated session before inserting.
+
+Run `supabase/schema.sql` and `supabase/multiplayer.sql` in the **Fablekeep Supabase project only**; do not run either in any other application database. No new SQL migration is necessary for this UI fix.
+
+After deploying, attempt to create a room. If an error appears, copy its message and code. For example, `42501` indicates a database permission or row-level security problem, and `42P01` generally indicates a missing relation. The presence of tables in a schema export does not confirm that grants, RLS policies, or triggers exist.
+
+Build: `npm install && npm run build`; Cloudflare Workers static assets uses `out` from Next.js static export.
