@@ -74,15 +74,18 @@ export function AppShell() {
   // from overwriting a newer edit. Failed saves can be retried without losing
   // the unsaved local draft while the page remains open.
   const persist = useCallback(async (id: string, ownerId: string) => {
-    if (!supabase || userIdRef.current !== ownerId) return;
-    const snapshot = latestSheets.current.get(id);
-    if (!snapshot) return;
+    // Capture a non-null client before entering an asynchronous callback.
+    const client = supabase;
+    if (!client || userIdRef.current !== ownerId) return;
     const revision = revisionRef.current.get(id) || 0;
     setStatusFor(id, "saving");
     const previous = queuesRef.current.get(id) || Promise.resolve();
     const operation = previous.then(async () => {
       if (userIdRef.current !== ownerId) return;
-      const { error } = await supabase.from("characters")
+      // Read the most recent version when our turn in the save queue arrives.
+      const snapshot = latestSheets.current.get(id);
+      if (!snapshot) return;
+      const { error } = await client.from("characters")
         .update({ name: snapshot.name.trim(), sheet: snapshot })
         .eq("id", id)
         .eq("user_id", ownerId);
@@ -139,10 +142,18 @@ export function AppShell() {
       return;
     }
     let active = true;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const client = supabase;
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
       if (!active) return;
       setUser(session?.user ?? null);
       setAuthLoading(false);
+    });
+    void client.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setUser(data.session?.user ?? null);
+      setAuthLoading(false);
+    }).catch(() => {
+      if (active) setAuthLoading(false);
     });
     return () => {active = false;subscription.unsubscribe();};
   }, []);

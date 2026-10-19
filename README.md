@@ -136,3 +136,28 @@ The `/tabletop` route now opens **campaign rooms**, replacing the local-only sce
 5. Sign in to two different Fablekeep accounts. Create a room on the first account and share the join code with the second. Both participants can now change the same tabletop.
 
 **Important:** The new VTT uses Supabase, not previous localStorage/IndexedDB scenes. Old locally saved scene JSON can still be accessed in an older project copy. Existing character sheets are unchanged. Authentication is still required. Room codes are invitations, so share them only with people you want to join. A room's creator can remove the room in the database; no room-member removal interface is included yet. Realtime uses Supabase Postgres Changes; while connected, updates propagate to other accounts. Token drag writes are throttled to approximately one request per 110 ms; that may consume Realtime messages under heavy use. Cloud synchronization requires internet access. The dice log is informational rather than tamper-resistant cryptographic dice.
+
+
+## Cloudflare deployment checklist (October 2026)
+
+This ZIP contains `wrangler.jsonc`, but not a generated `package-lock.json`.
+After extracting, run `npm install` locally to produce a lockfile, and commit **both** `package.json` and `package-lock.json` to GitHub. Cloudflare uses `npm ci`, which fails when these are out of sync.
+
+In Cloudflare Workers Git builds configure:
+
+- **Build command:** `npm run build`
+- **Deploy command:** `npx wrangler deploy`
+- **Root directory:** the directory containing `package.json` and `wrangler.jsonc`
+- **Build variables:** `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+
+Run `supabase/multiplayer.sql` in your Supabase SQL Editor if not already installed, and configure Authentication > URL Configuration for the deployed origin.
+
+### Local validation
+
+```powershell
+npm install
+npm ci
+npm run build
+```
+
+If these commands pass, then commit/push your changes. The code has **not** been verified with a full dependency-backed build in this delivery environment; Cloudflare is the final build check.
